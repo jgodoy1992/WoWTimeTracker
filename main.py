@@ -19,6 +19,8 @@ with open("file_paths.json", "r") as f:
     file_paths = json.load(f)
     LOG_FILE_PATH = file_paths["LOG_FILE_PATH"]
 
+### EMAIL FUCNTION ###
+
 
 def send_email_notification(event_type, details=""):
     try:
@@ -31,6 +33,8 @@ def send_email_notification(event_type, details=""):
 
 # TO DO: CSV or XLSX file creator class
 
+### HANDLER CLASS ###
+
 
 class WoWLogHandler(FileSystemEventHandler):
     def __init__(self, log_file_path):
@@ -39,6 +43,7 @@ class WoWLogHandler(FileSystemEventHandler):
         self.logout_email_sent = False
         self.login_time = None
 
+        # When the object is created it looks for the log file and check if it exist and is empty. If it is, then it sends the email to the user
         if os.path.exists(self.log_file_path) and os.path.getsize(self.log_file_path) == 0:
             print("login has occured")
             self.login_time = datetime.now()
@@ -46,6 +51,7 @@ class WoWLogHandler(FileSystemEventHandler):
             send_email_notification("login", details)
             self.login_email_sent = True
 
+    # Uses watchdog's on_modified method to check if the log file is modified. If it is and satisfies the stablished criteria, the it sends email to the user.
     def on_modified(self, event):
         event_path = os.path.abspath(event.src_path)
         if event_path == self.log_file_path:
