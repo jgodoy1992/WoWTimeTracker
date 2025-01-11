@@ -12,6 +12,12 @@ with open("credentials.json", "r") as f:
     SENDER_PASSWORD = credentials["SENDER_PASSWORD"]
     RECEIVER_EMAIL = credentials["RECEIVER_EMAIL"]
 
+### USER MUST CREATE FILE_PATHS.JSON FILE WITH LOG_FILE_PATH ###
+
+with open("file_paths.json", "r") as f:
+    file_paths = json.load(f)
+    LOG_FILE_PATH = file_paths["LOG_FILE_PATH"]
+
 
 def send_email_notification(event_type, details=""):
     try:
@@ -22,19 +28,35 @@ def send_email_notification(event_type, details=""):
     except Exception as e:
         print(f"Error sending email: {e}")
 
-# TO DO
+# TO DO: WoWLogHandler class + CSV or XLSX file creator class
 
 
 class WoWLogHandler(FileSystemEventHandler):
-    pass
+    def __init__(self, log_file_path):
+        self.log_file_path = log_file_path
+        self.login_email_sent = False
+        self.logout_email_sent = False
+        self.login_time = None
+
+        if os.path.getsize(self.log_file_path) == 0:
+            print("login has occured")
+            send_email_notification("login")
+            self.login_email_sent = True
 
 
 def main():
-    user_input = input("send mail? (y/n): ")
-    if user_input == "y":
-        send_email_notification("test", "this is a test email")
-    else:
-        print("Exiting...")
+    event_handler = WoWLogHandler(LOG_FILE_PATH)
+    observer = Observer()
+    observer.schedule(event_handler, path=os.path.dirname(
+        LOG_FILE_PATH), recursive=False)
+    observer.start()
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
 
 
 if __name__ == "__main__":
