@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import datetime
 import json
 import yagmail
 from watchdog.observers import Observer
@@ -28,23 +29,53 @@ def send_email_notification(event_type, details=""):
     except Exception as e:
         print(f"Error sending email: {e}")
 
-# TO DO: WoWLogHandler class + CSV or XLSX file creator class
+# TO DO: CSV or XLSX file creator class
 
 
 class WoWLogHandler(FileSystemEventHandler):
     def __init__(self, log_file_path):
-        self.log_file_path = log_file_path
+        self.log_file_path = os.path.abspath(log_file_path)
         self.login_email_sent = False
         self.logout_email_sent = False
         self.login_time = None
 
-        if os.path.getsize(self.log_file_path) == 0:
+        if os.path.exists(self.log_file_path) and os.path.getsize(self.log_file_path) == 0:
             print("login has occured")
-            send_email_notification("login")
+            self.login_time = datetime.now()
+            details = self.login_time.strftime('%y-%m-%d %H:%M:%S')
+            send_email_notification("login", details)
             self.login_email_sent = True
+
+    def on_modified(self, event):
+        event_path = os.path.abspath(event.src_path)
+        if event_path == self.log_file_path:
+            print("source found")
+            with open(self.log_file_path, "r") as f:
+                lines = f.readlines()
+                if lines:
+                    last_line = lines[-1].strip()
+                    if "WowConnectionNet: Shutdown" in last_line and not self.logout_email_sent:
+                        if self.login_time:
+                            logout_time = datetime.now()
+                            play_duration = logout_time - self.login_time
+                            formated_duration = str(
+                                play_duration).split(".")[0]
+                            details = f"Details : {
+                                last_line}\n Playtime {formated_duration}"
+                        else:
+                            details = f"Details : {
+                                last_line}\n Playtime Unkown"
+                        print("logout occured")
+                        send_email_notification("logout", details)
+                        self.logout_email_sent = True
 
 
 def main():
+
+    if not LOG_FILE_PATH:
+        print(f"Log file {LOG_FILE_PATH} not found")
+        exit(1)
+
     event_handler = WoWLogHandler(LOG_FILE_PATH)
     observer = Observer()
     observer.schedule(event_handler, path=os.path.dirname(
