@@ -58,13 +58,17 @@ class WoWToExcel:
             }
         )
 
-        if os.path.exists(WOW_TIME_EXCEL):
-            with pd.ExcelWriter(WOW_TIME_EXCEL, mode="a", engine="openpyxl", if_sheet_exists="overlay") as writer:
-                df.to_excel(writer, sheet_name="Time spent",
-                            startrow=writer.sheets["Time spent"].max_row, index=False, header=False)
-        else:
-            with pd.ExcelWriter(WOW_TIME_EXCEL, engine="openpyxl") as writer:
-                df.to_excel(writer, sheet_name="Time spent", index=False)
+        try:
+            if os.path.exists(WOW_TIME_EXCEL):
+                with pd.ExcelWriter(WOW_TIME_EXCEL, mode="a", engine="openpyxl", if_sheet_exists="overlay") as writer:
+                    df.to_excel(writer, sheet_name="Time spent",
+                                startrow=writer.sheets["Time spent"].max_row, index=False, header=False)
+            else:
+                with pd.ExcelWriter(WOW_TIME_EXCEL, engine="openpyxl") as writer:
+                    df.to_excel(writer, sheet_name="Time spent", index=False)
+        except Exception as e:
+            print(f"Error while exporting to Excel file: {e}")
+
 
 ### HANDLER CLASS ###
 
