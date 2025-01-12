@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 import json
 import yagmail
+import pandas as pd
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
@@ -18,11 +19,12 @@ with open("credentials.json", "r") as f:
 with open("file_paths.json", "r") as f:
     file_paths = json.load(f)
     LOG_FILE_PATH = file_paths["LOG_FILE_PATH"]
+    WOW_TIME_EXCEL = file_paths["WOW_TIME_EXCEL"]
 
 ### EMAIL FUCNTION ###
 
 
-def send_email_notification(event_type, details=""):
+def send_email_notification(event_type, details="") -> None:
     try:
         email = yagmail.SMTP(user=SENDER_EMAIL, password=SENDER_PASSWORD)
         subject = f"WoW {event_type} event occured"
@@ -32,6 +34,37 @@ def send_email_notification(event_type, details=""):
         print(f"Error sending email: {e}")
 
 # TO DO: CSV or XLSX file creator class
+
+### GENERATE EXCEL FILE ###
+
+
+class WoWToExcel:
+    def __init__(self, logout_time: datetime, played_time: datetime):
+        self.logout_time = logout_time
+        self.played_time = played_time
+
+    # Convert played_time object to minutes
+    def _to_minutes(self) -> float:
+        return round(self.played_time.seconds/60, 2)
+
+    # Function to load to Excel file. If the file exists then it updates it. If not then creates on and inputs data
+    def load_to_excel(self) -> None:
+
+        minutes = self._to_minutes()
+        df = pd.DataFrame(
+            {
+                "Date": [self.logout_time.strftime('%y-%m-%d')],
+                "Time played": [minutes]
+            }
+        )
+
+        if os.path.exists(WOW_TIME_EXCEL):
+            with pd.ExcelWriter(WOW_TIME_EXCEL, mode="a", engine="openpyxl", if_sheet_exists="overlay") as writer:
+                df.to_excel(writer, sheet_name="Time spent",
+                            startrow=writer.sheets["Time spent"].max_row, index=False, header=False)
+        else:
+            with pd.ExcelWriter(WOW_TIME_EXCEL, engine="openpyxl") as writer:
+                df.to_excel(writer, sheet_name="Time spent", index=False)
 
 ### HANDLER CLASS ###
 
@@ -68,6 +101,9 @@ class WoWLogHandler(FileSystemEventHandler):
                                 play_duration).split(".")[0]
                             details = f"Details : {
                                 last_line}\n Playtime {formated_duration}"
+                            to_excel = WoWToExcel(
+                                logout_time, play_duration)
+                            to_excel.load_to_excel()
                         else:
                             details = f"Details : {
                                 last_line}\n Playtime Unkown"
