@@ -5,4 +5,4 @@ Now, the thing is "why not also create a xlsx or csv file so that I can therefor
   - Use of the yagmail (yet another gmail) library to send email to user
   - Use of watchdog library to monitor file systems events
   - Use of pandas to write data frame to xlsx or csv file for later analyses
-  - Shedule task in the local system so the script executes everytime the game is initiated
+  - Schedule task in the local system so the script executes everytime the game is initiated
